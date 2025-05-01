@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weather Forecast</title>
+    <link rel="stylesheet" href="wether.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Weather Forecast</h1>
+            <div class="search-container">
+                <input type="text" id="city-input" placeholder="Enter city name...">
+                <button id="search-btn"><i class="fas fa-search"></i></button>
+                <button id="location-btn"><i class="fas fa-location-arrow"></i></button>
+                <div class="unit-toggle">
+                    <button id="celsius-btn" class="active">°C</button>
+                    <button id="fahrenheit-btn">°F</button>
+                </div>
+            </div>
+        </header>
+
+        <main>
+            <div class="current-weather">
+                <div class="weather-info">
+                    <h2 id="city-name">--</h2>
+                    <div class="date" id="current-date">--</div>
+                    <div class="temp" id="current-temp">--°</div>
+                    <div class="conditions" id="current-conditions">--</div>
+                </div>
+                <div class="weather-icon">
+                    <img id="weather-icon" src="" alt="Weather icon">
+                </div>
+                <div class="weather-details">
+                    <div class="detail">
+                        <i class="fas fa-tint"></i>
+                        <span id="humidity">--%</span>
+                    </div>
+                    <div class="detail">
+                        <i class="fas fa-wind"></i>
+                        <span id="wind">-- km/h</span>
+                    </div>
+                    <div class="detail">
+                        <i class="fas fa-temperature-low"></i>
+                        <span id="feels-like">--°</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="forecast">
+                <h3>5-Day Forecast</h3>
+                <div class="forecast-container" id="forecast-container">
+                    <!-- Forecast cards will be inserted here -->
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="whether.js"></script>
+</body>
+</html>

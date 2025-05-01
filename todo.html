@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task Manager</title>
+    <link rel="stylesheet" href="todo.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <div class="app-container">
+        <header>
+            <h1>Task Manager</h1>
+            <div class="task-input">
+                <input type="text" id="new-task-input" placeholder="Add a new task...">
+                <button id="add-task-btn"><i class="fas fa-plus"></i></button>
+            </div>
+        </header>
+
+        <div class="task-board">
+            <div class="task-column" id="todo-column">
+                <h2>To Do</h2>
+                <div class="task-list" id="todo-list"></div>
+            </div>
+            
+            <div class="task-column" id="in-progress-column">
+                <h2>In Progress</h2>
+                <div class="task-list" id="in-progress-list"></div>
+            </div>
+            
+            <div class="task-column" id="done-column">
+                <h2>Done</h2>
+                <div class="task-list" id="done-list"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="todo.js"></script>
+</body>
+</html>
