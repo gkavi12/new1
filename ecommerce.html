@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Simple E-Commerce</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f5f5f5;
+    }
+    header {
+      background-color: #333;
+      color: white;
+      padding: 1rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 1rem;
+    }
+    .products {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+      gap: 1rem;
+    }
+    .product-card {
+      background: white;
+      border-radius: 5px;
+      padding: 1rem;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    .product-card img {
+      width: 100%;
+      height: 200px;
+      object-fit: cover;
+    }
+    .cart {
+      position: fixed;
+      top: 0;
+      right: -400px;
+      width: 400px;
+      height: 100vh;
+      background: white;
+      box-shadow: -2px 0 5px rgba(0,0,0,0.1);
+      transition: right 0.3s;
+      padding: 1rem;
+      overflow-y: auto;
+    }
+    .cart.open {
+      right: 0;
+    }
+    .auth-form {
+      max-width: 400px;
+      margin: 2rem auto;
+      background: white;
+      padding: 2rem;
+      border-radius: 5px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    .hidden {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Simple E-Commerce</h1>
+    <div>
+      <button id="authBtn">Login</button>
+      <button id="cartBtn">Cart (<span id="cartCount">0</span>)</button>
+    </div>
+  </header>
+
+  <div class="container">
+    <div id="productsView">
+      <h2>Products</h2>
+      <div class="products" id="productsList"></div>
+    </div>
+
+    <div id="authView" class="hidden">
+      <div class="auth-form">
+        <h2 id="authTitle">Login</h2>
+        <div id="authError" style="color: red; margin-bottom: 1rem;"></div>
+        <form id="authForm">
+          <div id="nameField" style="margin-bottom: 1rem; display: none;">
+            <label>Name</label>
+            <input type="text" id="name" required>
+          </div>
+          <div style="margin-bottom: 1rem;">
+            <label>Email</label>
+            <input type="email" id="email" required>
+          </div>
+          <div style="margin-bottom: 1rem;">
+            <label>Password</label>
+            <input type="password" id="password" required>
+          </div>
+          <button type="submit" id="submitAuthBtn">Login</button>
+          <button type="button" id="switchAuthBtn">Switch to Register</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="cart" id="cart">
+    <h2>Your Cart</h2>
+    <div id="cartItems"></div>
+    <div id="cartTotal">Total: $0.00</div>
+    <button id="checkoutBtn">Checkout</button>
+    <button id="closeCartBtn">Close</button>
+  </div>
+
+  <script>
+    // Backend Simulation
+    const backend = {
+      users: [
+        { id: 1, name: 'Admin', email: 'admin@example.com', password: 'admin123', isAdmin: true }
+      ],
+      products: [
+        { id: 1, name: 'Product 1', price: 19.99, description: 'Description 1', image: 'https://via.placeholder.com/300' },
+        { id: 2, name: 'Product 2', price: 29.99, description: 'Description 2', image: 'https://via.placeholder.com/300' },
+        { id: 3, name: 'Product 3', price: 39.99, description: 'Description 3', image: 'https://via.placeholder.com/300' },
+        { id: 4, name: 'Product 4', price: 49.99, description: 'Description 4', image: 'https://via.placeholder.com/300' }
+      ],
+      orders: [],
+      currentUser: null,
+      
+      login(email, password) {
+        const user = this.users.find(u => u.email === email && u.password === password);
+        if (user) {
+          this.currentUser = user;
+          return { success: true, user };
+        }
+        return { success: false, message: 'Invalid credentials' };
+      },
+      
+      register(name, email, password) {
+        if (this.users.some(u => u.email === email)) {
+          return { success: false, message: 'Email already exists' };
+        }
+        const newUser = { id: this.users.length + 1, name, email, password, isAdmin: false };
+        this.users.push(newUser);
+        this.currentUser = newUser;
+        return { success: true, user: newUser };
+      },
+      
+      logout() {
+        this.currentUser = null;
+      },
+      
+      getProducts() {
+        return this.products;
+      },
+      
+      createOrder(cartItems) {
+        if (!this.currentUser) return { success: false, message: 'Not authenticated' };
+        const newOrder = {
+          id: this.orders.length + 1,
+          userId: this.currentUser.id,
+          items: cartItems,
+          total: cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0),
+          date: new Date().toISOString()
+        };
+        this.orders.push(newOrder);
+        return { success: true, order: newOrder };
+      }
+    };
+
+    // Frontend Application
+    const app = {
+      cart: [],
+      isRegistering: false,
+      
+      init() {
+        this.cacheElements();
+        this.bindEvents();
+        this.renderProducts();
+        this.updateCartCount();
+        this.checkAuthState();
+      },
+      
+      cacheElements() {
+        this.elements = {
+          productsList: document.getElementById('productsList'),
+          cartCount: document.getElementById('cartCount'),
+          cartItems: document.getElementById('cartItems'),
+          cartTotal: document.getElementById('cartTotal'),
+          cart: document.getElementById('cart'),
+          cartBtn: document.getElementById('cartBtn'),
+          closeCartBtn: document.getElementById('closeCartBtn'),
+          checkoutBtn: document.getElementById('checkoutBtn'),
+          authBtn: document.getElementById('authBtn'),
+          authView: document.getElementById('authView'),
+          productsView: document.getElementById('productsView'),
+          authForm: document.getElementById('authForm'),
+          authTitle: document.getElementById('authTitle'),
+          authError: document.getElementById('authError'),
+          submitAuthBtn: document.getElementById('submitAuthBtn'),
+          switchAuthBtn: document.getElementById('switchAuthBtn'),
+          nameField: document.getElementById('nameField'),
+          name: document.getElementById('name'),
+          email: document.getElementById('email'),
+          password: document.getElementById('password')
+        };
+      },
+      
+      bindEvents() {
+        this.elements.cartBtn.addEventListener('click', () => this.toggleCart());
+        this.elements.closeCartBtn.addEventListener('click', () => this.toggleCart());
+        this.elements.checkoutBtn.addEventListener('click', () => this.checkout());
+        this.elements.authBtn.addEventListener('click', () => this.toggleAuth());
+        this.elements.switchAuthBtn.addEventListener('click', () => this.switchAuthMode());
+        this.elements.authForm.addEventListener('submit', (e) => {
+          e.preventDefault();
+          this.handleAuth();
+        });
+      },
+      
+      renderProducts() {
+        const products = backend.getProducts();
+        this.elements.productsList.innerHTML = products.map(product => `
+          <div class="product-card">
+            <img src="${product.image}" alt="${product.name}">
+            <h3>${product.name}</h3>
+            <p>$${product.price.toFixed(2)}</p>
+            <p>${product.description}</p>
+            <button onclick="app.addToCart(${product.id})">Add to Cart</button>
+          </div>
+        `).join('');
+      },
+      
+      addToCart(productId) {
+        if (!backend.currentUser) {
+          this.toggleAuth();
+          return;
+        }
+        
+        const product = backend.products.find(p => p.id === productId);
+        const existingItem = this.cart.find(item => item.id === productId);
+        
+        if (existingItem) {
+          existingItem.quantity += 1;
+        } else {
+          this.cart.push({
+            id: product.id,
+            name: product.name,
+            price: product.price,
+            quantity: 1
+          });
+        }
+        
+        this.updateCartCount();
+        this.renderCart();
+      },
+      
+      removeFromCart(productId) {
+        this.cart = this.cart.filter(item => item.id !== productId);
+        this.updateCartCount();
+        this.renderCart();
+      },
+      
+      updateCartCount() {
+        this.elements.cartCount.textContent = this.cart.reduce((sum, item) => sum + item.quantity, 0);
+      },
+      
+      renderCart() {
+        this.elements.cartItems.innerHTML = this.cart.map(item => `
+          <div style="margin-bottom: 1rem; padding: 1rem; border-bottom: 1px solid #eee;">
+            <h4>${item.name}</h4>
+            <p>$${item.price.toFixed(2)} x ${item.quantity}</p>
+            <button onclick="app.removeFromCart(${item.id})">Remove</button>
+          </div>
+        `).join('');
+        
+        const total = this.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+        this.elements.cartTotal.textContent = `Total: $${total.toFixed(2)}`;
+      },
+      
+      toggleCart() {
+        this.elements.cart.classList.toggle('open');
+        if (this.elements.cart.classList.contains('open')) {
+          this.renderCart();
+        }
+      },
+      
+      checkout() {
+        if (this.cart.length === 0) return;
+        
+        const result = backend.createOrder(this.cart);
+        if (result.success) {
+          alert(`Order #${result.order.id} placed successfully! Total: $${result.order.total.toFixed(2)}`);
+          this.cart = [];
+          this.updateCartCount();
+          this.renderCart();
+          this.toggleCart();
+        } else {
+          alert(result.message);
+        }
+      },
+      
+      toggleAuth() {
+        this.elements.authView.classList.toggle('hidden');
+        this.elements.productsView.classList.toggle('hidden');
+      },
+      
+      switchAuthMode() {
+        this.isRegistering = !this.isRegistering;
+        this.elements.authTitle.textContent = this.isRegistering ? 'Register' : 'Login';
+        this.elements.submitAuthBtn.textContent = this.isRegistering ? 'Register' : 'Login';
+        this.elements.switchAuthBtn.textContent = this.isRegistering ? 'Switch to Login' : 'Switch to Register';
+        this.elements.nameField.style.display = this.isRegistering ? 'block' : 'none';
+      },
+      
+      handleAuth() {
+        const email = this.elements.email.value;
+        const password = this.elements.password.value;
+        
+        let result;
+        if (this.isRegistering) {
+          const name = this.elements.name.value;
+          result = backend.register(name, email, password);
+        } else {
+          result = backend.login(email, password);
+        }
+        
+        if (result.success) {
+          this.elements.authError.textContent = '';
+          this.checkAuthState();
+          this.toggleAuth();
+        } else {
+          this.elements.authError.textContent = result.message;
+        }
+      },
+      
+      checkAuthState() {
+        if (backend.currentUser) {
+          this.elements.authBtn.textContent = `Logout (${backend.currentUser.name})`;
+          this.elements.authBtn.onclick = () => {
+            backend.logout();
+            this.checkAuthState();
+          };
+        } else {
+          this.elements.authBtn.textContent = 'Login';
+          this.elements.authBtn.onclick = () => this.toggleAuth();
+        }
+      }
+    };
+
+    // Initialize the app
+    app.init();
+  </script>
+</body>
+</html>
